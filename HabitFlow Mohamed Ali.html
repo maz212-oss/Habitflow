@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HabitFlow & HabiTok - Suivi d'habitudes, Feed Infini & SportifGPT</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            touch-action: manipulation;
+        }
+        .glass {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-card {
+            background: rgba(31, 41, 55, 0.5);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.5);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 92, 246, 0.8);
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+        .robot-pulse {
+            animation: pulseGlow 2.5s ease-in-out infinite;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen relative overflow-x-hidden">
+
+    <!-- Fond dynamique animé (Canvas) -->
+    <canvas id="bgCanvas" class="fixed inset-0 pointer-events-none z-0"></canvas>
+
+    <!-- MODALE / POPUP DE DÉBLOCAGE DE BADGE / SUCCÈS -->
+    <div id="badgeModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden transition-all duration-300">
+        <div class="glass max-w-sm w-full p-6 rounded-3xl text-center space-y-4 border border-amber-500/40 shadow-2xl shadow-amber-500/20 transform scale-95 transition-transform" id="badgeModalContent">
+            <div class="w-20 h-20 bg-gradient-to-tr from-amber-500 to-orange-500 rounded-2xl mx-auto flex items-center justify-center text-4xl shadow-lg shadow-amber-500/40 text-white animate-bounce">
+                <i id="modalBadgeIcon" class="fa-solid fa-trophy"></i>
+            </div>
+            <div>
+                <span class="text-xs uppercase tracking-widest text-amber-400 font-bold">Nouveau Trophée Débloqué ! 🏆</span>
+                <h3 id="modalBadgeTitle" class="text-xl font-extrabold text-white mt-1">Nom du Badge</h3>
+                <p id="modalBadgeDesc" class="text-xs text-slate-300 mt-2">Description du badge débloqué avec succès.</p>
+            </div>
+            <button onclick="closeBadgeModal()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 font-bold text-slate-950 rounded-xl text-sm transition-all shadow-lg cursor-pointer">
+                Incroyable ! 🎉
+            </button>
+        </div>
+    </div>
+
+    <!-- ÉCRAN D'ACCUEIL / DEMANDE DE PSEUDO -->
+    <div id="welcomeScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl transition-opacity duration-500">
+        <div class="glass max-w-md w-full p-8 rounded-3xl shadow-2xl text-center relative overflow-hidden border border-purple-500/30">
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-purple-600/30 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-cyan-600/30 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="w-20 h-20 bg-gradient-to-tr from-purple-600 to-cyan-500 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-purple-500/30 mb-6 text-3xl text-white floating">
+                <i class="fa-solid fa-bolt"></i>
+            </div>
+            
+            <h1 class="text-3xl font-extrabold tracking-tight mb-2 bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent">HabitFlow & HabiTok</h1>
+            <p class="text-slate-400 text-sm mb-6">Suivi d'habitudes, Feed Robot-Fit Infini et conseils SportifGPT 24/7[cite: 1, 2].</p>
+
+            <form id="pseudoForm" class="space-y-4">
+                <div>
+                    <input type="text" id="pseudoInput" required placeholder="Entre ton pseudo..." 
+                        class="w-full px-4 py-3 bg-slate-900/80 border border-slate-700/60 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 text-white placeholder-slate-500 text-center text-lg font-medium">
+                </div>
+                <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 font-bold rounded-xl shadow-lg shadow-purple-600/30 transition-all transform active:scale-95 text-white cursor-pointer">
+                    Commencer l'aventure 🚀
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- APPLICATION PRINCIPALE -->
+    <div id="mainApp" class="relative z-10 max-w-5xl mx-auto px-4 py-8 hidden space-y-8">
+        
+        <!-- En-tête -->
+        <header class="flex flex-col sm:flex-row items-center justify-between gap-4 glass p-5 rounded-2xl shadow-xl">
+            <div class="flex items-center space-x-4">
+                <div id="userAvatarContainer" class="w-12 h-12 bg-gradient-to-tr from-purple-600 to-cyan-500 rounded-xl flex items-center justify-center text-2xl shadow-md shadow-purple-500/20 overflow-hidden font-bold">
+                    <span id="userAvatarText">🚀</span>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h1 class="text-xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">HabitFlow</h1>
+                        <span id="userLevelBadge" class="px-2 py-0.5 rounded-full text-[10px] bg-purple-500/20 border border-purple-500/40 text-purple-300 font-bold">Niveau 1</span>
+                        <span id="proBadgeTag" class="hidden px-2 py-0.5 rounded-full text-[10px] bg-amber-500/20 border border-amber-500/50 text-amber-300 font-extrabold">PRO ⭐</span>
+                    </div>
+                    <p class="text-sm text-purple-400 font-medium">Salut, <span id="userDisplayName" class="font-bold underline decoration-cyan-400 underline-offset-4"></span> ✨</p>
+                </div>
+            </div>
+
+            <!-- Barre d'XP, Cristaux et Navigation -->
+            <div class="flex flex-col sm:flex-row items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <!-- Cristaux Wallet -->
+                    <div onclick="switchTab('shop')" class="glass-card px-3 py-1.5 rounded-xl text-xs flex items-center space-x-2 border border-cyan-500/30 cursor-pointer hover:border-cyan-400 transition-all">
+                        <i class="fa-solid fa-gem text-cyan-400 animate-pulse"></i>
+                        <span class="font-bold text-white"><span id="userCrystals">50</span> 💎</span>
+                    </div>
+
+                    <!-- XP Progress -->
+                    <div class="glass-card px-3 py-1.5 rounded-xl text-xs space-y-1 w-36 border border-slate-800">
+                        <div class="flex justify-between font-semibold text-slate-300">
+                            <span>XP : <span id="currentXpText" class="text-cyan-400">0</span>/100</span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                            <div id="xpProgressBar" class="bg-gradient-to-r from-purple-500 to-cyan-400 h-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap bg-slate-900/80 p-1.5 rounded-xl border border-slate-800 gap-1">
+                    <button onclick="switchTab('habits')" id="tabHabitsBtn" class="px-3 py-2 rounded-lg text-xs font-medium transition-all bg-purple-600 text-white shadow-sm cursor-pointer">
+                        <i class="fa-solid fa-table-cells mr-1"></i>Tableau
+                    </button>
+                    <button onclick="switchTab('habitok')" id="tabHabitokBtn" class="px-3 py-2 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white cursor-pointer relative">
+                        <i class="fa-solid fa-video mr-1 text-pink-400"></i>HabiTok
+                        <span class="absolute -top-1 -right-1 px-1.5 py-0.2 bg-pink-500 text-[8px] font-bold rounded-full text-white animate-pulse">Infini</span>
+                    </button>
+                    <button onclick="switchTab('sportifgpt')" id="tabSportifgptBtn" class="px-3 py-2 rounded-lg text-xs font-medium transition-all text-emerald-400 hover:text-emerald-300 cursor-pointer flex items-center">
+                        <i class="fa-solid fa-robot mr-1"></i>SportifGPT 🤖
+                    </button>
+                    <button onclick="switchTab('shop')" id="tabShopBtn" class="px-3 py-2 rounded-lg text-xs font-medium transition-all text-amber-300 hover:text-amber-200 cursor-pointer flex items-center">
+                        <i class="fa-solid fa-store mr-1"></i>Boutique 💎
+                    </button>
+                    <button onclick="switchTab('profile')" id="tabProfileBtn" class="px-3 py-2 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white cursor-pointer">
+                        <i class="fa-solid fa-user-gear mr-1"></i>Profil
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- BANDEAU CITATION MOTIVANTE & COMPAGNON DRAGON -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div id="quoteBanner" class="glass p-4 rounded-2xl shadow-lg border border-purple-500/20 flex items-center space-x-4 bg-gradient-to-r from-purple-950/30 to-slate-900/50 md:col-span-2">
+                <div class="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 shrink-0">
+                    <i class="fa-solid fa-quote-left"></i>
+                </div>
+                <div class="flex-1">
+                    <p id="dailyQuoteText" class="text-xs sm:text-sm text-slate-200 italic font-medium">"La motivation vous sert de départ, l'habitude vous fait continuer."</p>
+                    <span class="text-[10px] text-purple-400 font-semibold">— Citation du jour</span>
+                </div>
+            </div>
+
+            <!-- COMPAGNON TAMAGOTCHI (DRAGON) -->
+            <div class="glass p-4 rounded-2xl shadow-lg border border-cyan-500/30 flex items-center space-x-4 bg-gradient-to-r from-cyan-950/30 to-slate-900/50">
+                <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-3xl shrink-0 floating" id="petAvatar">
+                    🐲
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-center mb-1">
+                        <h4 id="petName" class="text-xs font-bold text-white truncate">Pyxl le Dragon</h4>
+                        <span id="petLevel" class="text-[10px] text-cyan-300 font-bold px-1.5 py-0.5 bg-cyan-500/20 rounded-md">Lv.1</span>
+                    </div>
+                    <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden mb-1">
+                        <div id="petXpBar" class="bg-gradient-to-r from-cyan-500 to-purple-500 h-full transition-all" style="width: 25%"></div>
+                    </div>
+                    <p id="petStatus" class="text-[10px] text-slate-300 truncate">En pleine forme ! 🌟</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENU : ONGLET TABLEAU DE BORD HABITUDES -->
+        <div id="tabHabits" class="space-y-6">
+            
+            <!-- Statistiques du haut -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="glass-card p-4 rounded-2xl flex items-center justify-between border border-slate-800">
+                    <div>
+                        <p class="text-[11px] font-semibold text-slate-400 tracking-wider uppercase mb-1">Réussite globale</p>
+                        <h3 id="globalSuccessRate" class="text-2xl font-extrabold text-white">0%</h3>
+                        <p id="globalSuccessCount" class="text-[11px] text-slate-400 mt-0.5">0 / 21 actions</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400 text-lg">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl flex items-center justify-between border border-slate-800">
+                    <div>
+                        <p class="text-[11px] font-semibold text-slate-400 tracking-wider uppercase mb-1">Série maximale</p>
+                        <h3 id="maxStreakDisplay" class="text-2xl font-extrabold text-white">0 jours</h3>
+                        <p class="text-[11px] text-orange-400 mt-0.5">Dynamique active</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 text-lg">
+                        <i class="fa-solid fa-fire"></i>
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl flex items-center justify-between border border-slate-800">
+                    <div>
+                        <p class="text-[11px] font-semibold text-slate-400 tracking-wider uppercase mb-1">Badges débloqués</p>
+                        <h3 id="badgesCountDisplay" class="text-2xl font-extrabold text-white">0 / 6</h3>
+                        <p class="text-[11px] text-cyan-400 mt-0.5">Succès accomplis</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-lg">
+                        <i class="fa-solid fa-trophy"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulaire d'ajout d'habitude -->
+            <div class="glass p-5 rounded-2xl shadow-xl space-y-4">
+                <h3 class="text-sm font-bold text-white flex items-center"><i class="fa-solid fa-circle-plus mr-2 text-purple-400"></i>Créer une nouvelle habitude</h3>
+                <form id="addHabitForm" class="space-y-3">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="text" id="habitNameInput" required placeholder="Nom de l'habitude..." 
+                            class="flex-1 px-4 py-3 bg-slate-900/80 border border-slate-700/60 rounded-xl focus:outline-none focus:border-purple-500 text-white placeholder-slate-500 text-sm">
+                        <select id="habitCategoryInput" class="px-4 py-3 bg-slate-900/80 border border-slate-700/60 rounded-xl text-slate-300 text-sm focus:outline-none">
+                            <option value="Santé & Bien-être">Santé & Bien-être</option>
+                            <option value="Développement personnel">Développement personnel</option>
+                            <option value="Sport & Forme">Sport & Forme</option>
+                            <option value="Productivité">Productivité</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-2">Choisis ton icône :</label>
+                        <div id="iconPickerGrid" class="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 bg-slate-900/60 rounded-xl border border-slate-800"></div>
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-purple-600 hover:bg-purple-500 font-semibold rounded-xl text-sm shadow-lg shadow-purple-600/30 transition-all text-white cursor-pointer">
+                        Ajouter l'habitude au tableau
+                    </button>
+                </form>
+            </div>
+
+            <!-- Tableau de bord de la semaine -->
+            <div class="glass p-6 rounded-2xl shadow-xl overflow-x-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center">
+                            <i class="fa-solid fa-calendar-days mr-2 text-purple-400"></i>Tableau de bord de la semaine
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">Coche tes actions quotidiennes pour progresser et nourrir ton dragon !</p>
+                    </div>
+                </div>
+                <div class="min-w-[800px]">
+                    <div class="grid grid-cols-12 text-xs font-semibold text-slate-400 uppercase tracking-wider pb-3 border-b border-slate-800">
+                        <div class="col-span-4">Habitude & Catégorie</div>
+                        <div class="col-span-1 text-center">LUN</div>
+                        <div class="col-span-1 text-center">MAR</div>
+                        <div class="col-span-1 text-center text-purple-300 font-bold">MER</div>
+                        <div class="col-span-1 text-center">JEU</div>
+                        <div class="col-span-1 text-center">VEN</div>
+                        <div class="col-span-1 text-center">SAM</div>
+                        <div class="col-span-1 text-center">DIM</div>
+                        <div class="col-span-1 text-center">SÉRIE</div>
+                        <div class="col-span-1 text-right">ACTION</div>
+                    </div>
+                    <div id="habitsTableBody" class="divide-y divide-slate-800/60"></div>
+                </div>
+            </div>
+
+            <!-- SECTION BADGES -->
+            <div class="glass p-6 rounded-2xl shadow-xl space-y-4">
+                <h2 class="text-lg font-bold text-white flex items-center">
+                    <i class="fa-solid fa-medal mr-2 text-amber-400"></i>Trophées & Badges débloquables
+                </h2>
+                <div id="badgesGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+            </div>
+        </div>
+
+        <!-- CONTENU : ONGLET HABITOK (FEED INFINI ROBOT-FIT IA) -->
+        <div id="tabHabitok" class="space-y-4 hidden">
+            <div class="flex items-center justify-between px-2">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center">
+                        <i class="fa-solid fa-video mr-2 text-pink-400"></i>HabiTok[cite: 1] 
+                        <span class="ml-2 px-2 py-0.5 bg-pink-500/20 text-pink-300 border border-pink-500/40 text-[10px] rounded-full font-bold">Flux IA Robot-Fit Infini</span>[cite: 1]
+                    </h2>
+                    <p class="text-xs text-slate-400">Vidéos de démonstration d'exercices générées en continu par des robots virtuels ![cite: 1]</p>
+                </div>
+                <button onclick="nextHabitokVideo()" class="px-4 py-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold text-xs rounded-xl shadow-lg transition-all cursor-pointer flex items-center">
+                    <i class="fa-solid fa-arrow-down mr-1.5 animate-bounce"></i> Exercice Suivant
+                </button>
+            </div>
+
+            <!-- CONTENEUR TYPE TIKTOK VERTICAL -->
+            <div class="relative max-w-sm mx-auto h-[580px] glass rounded-3xl border border-pink-500/30 overflow-hidden shadow-2xl flex flex-col justify-between" id="habitokCardContainer">
+                <!-- En-tête vidéo -->
+                <div class="absolute top-4 left-4 right-4 z-20 flex justify-between items-center pointer-events-none">
+                    <span class="px-3 py-1 bg-slate-950/70 backdrop-blur-md rounded-full text-[10px] font-bold text-pink-400 border border-pink-500/30">#RobotFit #HabiTok</span>
+                    <span id="habitokIndexIndicator" class="text-xs text-slate-300 font-bold bg-slate-950/70 px-2.5 py-1 rounded-full border border-slate-800">Vidéo #1</span>
+                </div>
+
+                <!-- Animation Robot IA (Scène centrale) -->
+                <div class="absolute inset-0 z-0 flex flex-col items-center justify-center p-6 bg-gradient-to-b from-slate-900 via-purple-950/50 to-slate-950">
+                    <div class="w-36 h-36 rounded-full bg-gradient-to-tr from-cyan-500/20 to-pink-500/20 border-2 border-pink-500/40 flex items-center justify-center text-6xl shadow-2xl robot-pulse mb-4" id="habitokRobotAvatar">
+                        🤖
+                    </div>
+                    <div class="text-center space-y-2 max-w-xs">
+                        <h3 id="habitokCoachName" class="text-base font-extrabold text-white">Bot-Fit 3000</h3>
+                        <p id="habitokExerciseTitle" class="text-xs font-bold text-cyan-300 uppercase tracking-widest bg-cyan-950/60 border border-cyan-500/30 px-3 py-1 rounded-lg inline-block">Pompes Parfaites</p>
+                        <p id="habitokDescription" class="text-xs text-slate-300 italic px-2">"Garde le dos bien droit et fléchis les bras à 90 degrés pour un recrutement optimal !"</p>
+                    </div>
+
+                    <!-- Bouton rapide d'ajout aux habitudes -->
+                    <button onclick="addCurrentExerciseToHabits()" class="mt-5 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg transition-all cursor-pointer flex items-center space-x-1.5 transform hover:scale-105">
+                        <i class="fa-solid fa-plus-circle text-sm"></i>
+                        <span>Ajouter cet exercice à mes habitudes</span>[cite: 1]
+                    </button>
+                </div>
+
+                <!-- Barre latérale d'actions -->
+                <div class="absolute right-4 bottom-24 z-20 flex flex-col items-center space-y-4">
+                    <div class="flex flex-col items-center">
+                        <button onclick="toggleCoachSubscribe()" id="habitokSubBtn" class="w-11 h-11 rounded-full bg-slate-900/80 border border-pink-500/50 flex items-center justify-center text-pink-400 text-lg shadow-lg hover:bg-pink-600 hover:text-white transition-all cursor-pointer">
+                            <i id="habitokSubIcon" class="fa-solid fa-user-plus"></i>
+                        </button>
+                        <span id="habitokSubsCount" class="text-[10px] font-bold text-white mt-1">12.4k</span>
+                    </div>
+
+                    <div class="flex flex-col items-center">
+                        <button onclick="toggleHabitokLike()" id="habitokLikeBtn" class="w-11 h-11 rounded-full bg-slate-900/80 border border-slate-700 flex items-center justify-center text-slate-300 text-lg shadow-lg hover:text-red-400 transition-all cursor-pointer">
+                            <i id="habitokLikeIcon" class="fa-solid fa-heart"></i>
+                        </button>
+                        <span id="habitokLikesCount" class="text-[10px] font-bold text-white mt-1">1,420</span>
+                    </div>
+
+                    <div class="flex flex-col items-center">
+                        <button onclick="shareHabitokVideo()" class="w-11 h-11 rounded-full bg-slate-900/80 border border-slate-700 flex items-center justify-center text-cyan-400 text-lg shadow-lg hover:bg-cyan-600 hover:text-white transition-all cursor-pointer">
+                            <i class="fa-solid fa-share"></i>
+                        </button>
+                        <span class="text-[10px] font-bold text-white mt-1">Partager</span>
+                    </div>
+                </div>
+
+                <!-- Footer du Swipe -->
+                <div class="relative z-20 p-4 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent flex items-center justify-between border-t border-slate-800/50">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-full bg-pink-600 flex items-center justify-center text-xs font-bold text-white" id="habitokMiniAvatar">🤖</div>
+                        <span id="habitokFooterAuthor" class="text-xs font-bold text-white">@BotCoach_AI</span>
+                    </div>
+                    <button onclick="nextHabitokVideo()" class="px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white text-xs font-bold rounded-xl shadow-md cursor-pointer flex items-center gap-1">
+                        Suivant <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENU : ONGLET SPORTIFGPT (ASSISTANT IA CHAT 24/7) -->
+        <div id="tabSportifgpt" class="space-y-4 hidden">
+            <div id="sportifgpt-container" class="flex flex-col h-[75vh] max-w-2xl mx-auto glass rounded-3xl shadow-2xl border border-emerald-500/30 overflow-hidden">
+                
+                <!-- En-tête du Chat -->
+                <div class="bg-slate-900/90 px-5 py-4 flex items-center justify-between border-b border-slate-800">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl font-bold border border-emerald-500/30 shadow-md">
+                            🤖
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-base tracking-wide text-white">SportifGPT[cite: 1]</h3>
+                            <p class="text-xs text-emerald-400 flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> En ligne • Ton Expert Musculation, Nutrition & Fitness[cite: 1]
+                            </p>
+                        </div>
+                    </div>
+                    <span class="text-xs bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-lg font-bold">24/7 IA</span>
+                </div>
+
+                <!-- Corps des messages -->
+                <div id="chat-messages" class="flex-1 p-5 overflow-y-auto space-y-4 text-sm bg-slate-950/40">
+                    <!-- Message de bienvenue -->
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-xs shrink-0 border border-emerald-500/30">🤖</div>
+                        <div class="bg-slate-800/90 p-4 rounded-2xl rounded-tl-none max-w-[85%] border border-slate-700/50 text-slate-200">
+                            Salut champion ! Je suis **SportifGPT**. Pose-moi n'importe quelle question sur la nutrition, le calcul des protéines, les compléments, les programmes d'entraînement ou l'exécution parfaite de tes exercices ! 💪[cite: 1]
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suggestions rapides -->
+                <div class="px-4 py-2.5 flex gap-2 overflow-x-auto no-scrollbar bg-slate-900/80 border-t border-slate-800/80">
+                    <button onclick="sendQuickPrompt('Combien de grammes de protéines par jour faut-il prendre ?')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full whitespace-nowrap border border-slate-700 transition cursor-pointer">🥩 Protéines / jour</button>
+                    <button onclick="sendQuickPrompt('Comment bien exécuter le Squat sans se faire mal au dos ?')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full whitespace-nowrap border border-slate-700 transition cursor-pointer">🏋️‍♂️ Technique Squat</button>
+                    <button onclick="sendQuickPrompt('Comment prendre la créatine et quels sont ses bienfaits ?')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full whitespace-nowrap border border-slate-700 transition cursor-pointer">⚡ Guide Créatine</button>
+                    <button onclick="sendQuickPrompt('Donne-moi un programme de musculation sur 4 jours')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full whitespace-nowrap border border-slate-700 transition cursor-pointer">📅 Programme 4 jours</button>
+                </div>
+
+                <!-- Zone de Saisie -->
+                <div class="p-4 bg-slate-900/90 border-t border-slate-800 flex items-center space-x-2">
+                    <input id="chat-input" type="text" placeholder="Pose n'importe quelle question à SportifGPT..." onkeypress="handleKeyPress(event)" class="flex-1 bg-slate-950 text-slate-100 px-4 py-3 rounded-xl text-sm border border-slate-700 focus:outline-none focus:border-emerald-500 transition placeholder-slate-500" />
+                    <button onclick="sendMessage()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-3 rounded-xl transition flex items-center justify-center cursor-pointer shadow-lg shadow-emerald-500/20">
+                        <i class="fa-solid fa-paper-plane text-base"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENU : BOUTIQUE & MONÉTISATION -->
+        <div id="tabShop" class="space-y-6 hidden">
+            <div class="glass p-6 rounded-2xl shadow-xl max-w-2xl mx-auto space-y-6">
+                <div class="text-center space-y-2">
+                    <div class="w-20 h-20 bg-gradient-to-tr from-amber-500 to-cyan-500 rounded-3xl mx-auto flex items-center justify-center text-4xl shadow-xl shadow-amber-500/30 font-extrabold text-white floating">
+                        💎
+                    </div>
+                    <h2 class="text-xl font-extrabold text-white">Boutique & Avantages Exclusifs</h2>
+                    <p class="text-xs text-slate-400">Achète des cristaux pour booster ton aventure ou débloque le statut PRO !</p>
+                </div>
+
+                <!-- OFFRE PRO ABONNEMENT -->
+                <div class="glass-card p-5 rounded-2xl border border-amber-500/50 bg-gradient-to-r from-amber-950/30 to-purple-950/30 space-y-3 relative overflow-hidden">
+                    <div class="absolute -right-8 -top-8 w-24 h-24 bg-amber-500/20 rounded-full blur-xl pointer-events-none"></div>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="text-[10px] font-bold px-2 py-0.5 bg-amber-500 text-slate-950 rounded-full uppercase tracking-wider">Abonnement VIP</span>
+                            <h3 class="text-lg font-bold text-white mt-1">HabitFlow Pro (À vie / Illimité)</h3>
+                        </div>
+                        <span class="text-xl font-extrabold text-amber-400">4,99 €</span>
+                    </div>
+                    <ul class="text-xs space-y-1.5 text-slate-300">
+                        <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i>Accès complet à toutes les fonctionnalités avancées</li>
+                        <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i>Badge PRO exclusif doré sur ton profil</li>
+                        <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i>+200 Cristaux 💎 offerts instantanément</li>
+                    </ul>
+                    <button onclick="buyProVersion()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 font-bold text-slate-950 rounded-xl text-sm transition-all shadow-lg cursor-pointer">
+                        Passer à HabitFlow Pro ⭐ (Simulation Paiement Sécurisé)
+                    </button>
+                </div>
+
+                <!-- PACKS DE CRISTAUX -->
+                <h3 class="text-sm font-bold text-white pt-2 flex items-center"><i class="fa-solid fa-gem mr-2 text-cyan-400"></i>Packs de Cristaux d'Énergie</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="glass-card p-4 rounded-2xl border border-slate-800 text-center space-y-3">
+                        <div class="text-2xl">💎💎</div>
+                        <h4 class="font-bold text-white text-sm">Pack Débutant</h4>
+                        <p class="text-xs text-cyan-400 font-bold">+ 100 Cristaux</p>
+                        <button onclick="buyCrystals(100, 0.99)" class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs rounded-xl cursor-pointer">0,99 €</button>
+                    </div>
+
+                    <div class="glass-card p-4 rounded-2xl border border-cyan-500/40 text-center space-y-3 bg-cyan-950/20">
+                        <div class="text-2xl">💎💎💎</div>
+                        <h4 class="font-bold text-white text-sm">Pack Champion</h4>
+                        <p class="text-xs text-cyan-400 font-bold">+ 500 Cristaux</p>
+                        <button onclick="buyCrystals(500, 2.99)" class="w-full py-2 bg-gradient-to-r from-cyan-500 to-purple-500 hover:opacity-90 text-slate-950 font-bold text-xs rounded-xl cursor-pointer">2,99 €</button>
+                    </div>
+
+                    <div class="glass-card p-4 rounded-2xl border border-purple-500/40 text-center space-y-3">
+                        <div class="text-2xl">👑💎</div>
+                        <h4 class="font-bold text-white text-sm">Pack Légende</h4>
+                        <p class="text-xs text-cyan-400 font-bold">+ 1500 Cristaux</p>
+                        <button onclick="buyCrystals(1500, 6.99)" class="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl cursor-pointer">6,99 €</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENU : ONGLET ÉDITION DE PROFIL -->
+        <div id="tabProfile" class="space-y-6 hidden">
+            <div class="glass p-6 rounded-2xl shadow-xl max-w-xl mx-auto space-y-6">
+                <div class="text-center space-y-2">
+                    <div id="profileBigAvatar" class="w-24 h-24 bg-gradient-to-tr from-purple-600 to-cyan-500 rounded-3xl mx-auto flex items-center justify-center text-5xl shadow-xl shadow-purple-500/30 font-extrabold">
+                        🚀
+                    </div>
+                    <h2 class="text-xl font-bold text-white">Personnalisation du Profil & Paramètres</h2>
+                    <p class="text-xs text-slate-400">Modifie ton pseudo, ton avatar et ta bio.</p>
+                </div>
+
+                <form id="profileForm" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Ton Pseudo :</label>
+                        <input type="text" id="profilePseudoInput" required 
+                            class="w-full px-4 py-3 bg-slate-900/80 border border-slate-700/60 rounded-xl focus:outline-none focus:border-purple-500 text-white text-sm font-medium">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Avatar / Emoji favori :</label>
+                        <select id="profileAvatarSelect" class="w-full px-4 py-3 bg-slate-900/80 border border-slate-700/60 rounded-xl text-slate-200 text-sm focus:outline-none">
+                            <option value="🚀">🚀 Fusée</option>
+                            <option value="🔥">🔥 Flamme</option>
+                            <option value="⚡">⚡ Éclair</option>
+                            <option value="🦁">🦁 Lion</option>
+                            <option value="🦾">🦾 Robot / Force</option>
+                            <option value="👑">👑 Roi / Couronne</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Ta Bio :</label>
+                        <textarea id="profileBioInput" rows="2" placeholder="En route vers mes objectifs..." 
+                            class="w-full px-4 py-3 bg-slate-900/80 border border-slate-700/60 rounded-xl focus:outline-none text-white text-sm resize-none"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 font-bold rounded-xl shadow-lg transition-all text-white text-sm cursor-pointer">
+                        Enregistrer les modifications
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Script JavaScript -->
+    <script>
+        // --- FOND DYNAMIQUE (CANVAS) ---
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 1;
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5;
+                this.color = Math.random() > 0.5 ? 'rgba(139, 92, 246, 0.4)' : 'rgba(6, 182, 212, 0.4)';
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 60; i++) particles.push(new Particle());
+        }
+        initParticles();
+
+        function animateBg() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animateBg);
+        }
+        animateBg();
+
+        // --- CITATIONS ---
+        const quotes = [
+            "La motivation vous sert de départ, l'habitude vous fait continuer.",
+            "Chaque petite action quotidienne façonne la personne que vous devenez.",
+            "Le succès n'est pas toujours une question de grandeur, c'est une question de régularité.",
+            "Progressez chaque jour d'1%, vous ferez 365% de progrès en un an."
+        ];
+        document.getElementById('dailyQuoteText').textContent = `"${quotes[Math.floor(Math.random() * quotes.length)]}"`;
+
+        // --- ICÔNES ---
+        const availableIcons = [
+            "fa-droplet", "fa-book", "fa-dumbbell", "fa-heart-pulse", "fa-brain", 
+            "fa-person-running", "fa-apple-whole", "fa-bed", "fa-code", "fa-guitar",
+            "fa-paintbrush", "fa-mug-hot", "fa-laptop", "fa-seedling", "fa-fire",
+            "fa-bolt", "fa-sun", "fa-moon", "fa-shield", "fa-compass"
+        ];
+
+        let selectedIcon = "fa-droplet";
+        function renderIconPicker() {
+            const grid = document.getElementById('iconPickerGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            availableIcons.forEach(icon => {
+                const btn = document.createElement('button');
+                btn.type = "button";
+                btn.className = `w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all cursor-pointer ${selectedIcon === icon ? 'bg-purple-600 text-white shadow-md shadow-purple-500/50 scale-105 border border-purple-400' : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'}`;
+                btn.innerHTML = `<i class="fa-solid ${icon}"></i>`;
+                btn.onclick = () => { selectedIcon = icon; renderIconPicker(); };
+                grid.appendChild(btn);
+            });
+        }
+        renderIconPicker();
+
+        // --- ÉTAT GLOBAL ---
+        let currentUser = localStorage.getItem('habitflow_user') || '';
+        let userAvatar = localStorage.getItem('habitflow_avatar') || '🚀';
+        let userBio = localStorage.getItem('habitflow_bio') || 'En route vers mes objectifs !';
+        let userXp = parseInt(localStorage.getItem('habitflow_xp')) || 0;
+        let userCrystals = parseInt(localStorage.getItem('habitflow_crystals')) || 50;
+        let isPro = localStorage.getItem('habitflow_pro') === 'true';
+        
+        let habits = JSON.parse(localStorage.getItem('habitflow_habits_v6')) || [
+            { id: 1, name: "Boire 1.5L d'eau", category: "Santé & Bien-être", icon: "fa-droplet", days: [false, false, false, false, false, false, false], streak: 0 },
+            { id: 2, name: "Lecture quotidienne (20m)", category: "Développement personnel", icon: "fa-book", days: [false, false, false, false, false, false, false], streak: 0 },
+            { id: 3, name: "Séance de sport (30m)", category: "Sport & Forme", icon: "fa-dumbbell", days: [false, false, false, false, false, false, false], streak: 0 }
+        ];
+
+        let petData = JSON.parse(localStorage.getItem('habitflow_pet')) || { name: "Pyxl le Dragon", level: 1, xp: 20, maxLevelXp: 100 };
+
+        // --- MONÉTISATION & PORTAFEUILLE ---
+        function updateWalletDisplay() {
+            document.getElementById('userCrystals').textContent = userCrystals;
+            localStorage.setItem('habitflow_crystals', userCrystals);
+            
+            const badgeTag = document.getElementById('proBadgeTag');
+            if (isPro) {
+                badgeTag.classList.remove('hidden');
+            } else {
+                badgeTag.classList.add('hidden');
+            }
+        }
+
+        function buyCrystals(amount, price) {
+            userCrystals += amount;
+            updateWalletDisplay();
+            confetti({ particleCount: 60, spread: 60 });
+            alert(`💎 Achat réussi ! +${amount} cristaux ajoutés à ton compte (Simulé : ${price} €).`);
+        }
+
+        function buyProVersion() {
+            isPro = true;
+            userCrystals += 200;
+            localStorage.setItem('habitflow_pro', 'true');
+            updateWalletDisplay();
+            confetti({ particleCount: 150, spread: 90, origin: { y: 0.5 } });
+            alert(`⭐ Félicitations ! Tu es désormais membre HabitFlow PRO avec accès complet et +200 cristaux offerts !`);
+        }
+
+        // --- MOTEUR DE FEED INFINI HABITOK (ROBOTS IA) ---
+        const baseRobotCoaches = [
+            { name: "Bot-Fit 3000", avatar: "🤖", handle: "@BotCoach_AI" },
+            { name: "Flex-AI v2", avatar: "🦾", handle: "@CyberFlex_AI" },
+            { name: "Zen-Bot Master", avatar: "🧘‍♂️", handle: "@ZenMachine_AI" },
+            { name: "Cardio-X 9000", avatar: "⚡", handle: "@SpeedBot_AI" },
+            { name: "IronTitan-Bot", avatar: "🛡️", handle: "@TitanRobot_AI" }
+        ];
+
+        const exerciseDatabase = [
+            { title: "Pompes Parfaites", desc: "Garde le dos bien droit et fléchis les bras à 90° pour cibler les pectoraux.", icon: "fa-dumbbell", cat: "Sport & Forme" },
+            { title: "Squats Explosifs", desc: "Descends les fesses en arrière, genoux alignés avec les pieds. Pousse sur les talons !", icon: "fa-person-running", cat: "Sport & Forme" },
+            { title: "Gainage Planche 60s", desc: "Contracte tes fessiers et ta sangle abdominale. Garde une ligne parfaite de la tête aux pieds.", icon: "fa-shield", cat: "Sport & Forme" },
+            { title: "Burpees Brûle-Graisse", desc: "Enchaîne une pompe et un saut vertical avec impulsion maximale pour le cardio.", icon: "fa-bolt", cat: "Sport & Forme" },
+            { title: "Fentes Avant Alternées", desc: "Garde le buste bien droit et descends jusqu'à ce que le genou frôle le sol.", icon: "fa-person-running", cat: "Sport & Forme" },
+            { title: "Dips sur Chaise / Banc", desc: "Fléchis les coudes vers l'arrière à 90° pour un recrutement massif des triceps.", icon: "fa-dumbbell", cat: "Sport & Forme" },
+            { title: "Mountain Climbers", desc: "En position de planche, ramène alternativement tes genoux vers ta poitrine à rythme élevé.", icon: "fa-fire", cat: "Sport & Forme" },
+            { title: "Jumping Jacks Cardio", desc: "Écarte bras et jambes de manière synchrone en maintenant un rythme fluide.", icon: "fa-bolt", cat: "Sport & Forme" }
+        ];
+
+        let habitokFeed = [];
+        let currentHabitokIdx = 0;
+
+        function generateHabitokVideo() {
+            const coach = baseRobotCoaches[Math.floor(Math.random() * baseRobotCoaches.length)];
+            const ex = exerciseDatabase[Math.floor(Math.random() * exerciseDatabase.length)];
+            return {
+                id: Date.now() + Math.random(),
+                coach: coach.name,
+                author: coach.handle,
+                avatar: coach.avatar,
+                exercise: ex.title,
+                desc: ex.desc,
+                icon: ex.icon,
+                category: ex.cat,
+                likes: Math.floor(Math.random() * 4000) + 500,
+                subs: (Math.floor(Math.random() * 80) + 5) + "." + Math.floor(Math.random() * 9) + "k",
+                liked: false,
+                subscribed: false
+            };
+        }
+
+        for (let i = 0; i < 5; i++) {
+            habitokFeed.push(generateHabitokVideo());
+        }
+
+        function renderHabitokVideo() {
+            const vid = habitokFeed[currentHabitokIdx];
+            document.getElementById('habitokCoachName').textContent = vid.coach;
+            document.getElementById('habitokFooterAuthor').textContent = vid.author;
+            document.getElementById('habitokRobotAvatar').textContent = vid.avatar;
+            document.getElementById('habitokMiniAvatar').textContent = vid.avatar;
+            document.getElementById('habitokExerciseTitle').textContent = vid.exercise;
+            document.getElementById('habitokDescription').textContent = `"${vid.desc}"`;
+            document.getElementById('habitokLikesCount').textContent = vid.likes.toLocaleString();
+            document.getElementById('habitokSubsCount').textContent = vid.subs;
+            document.getElementById('habitokIndexIndicator').textContent = `Vidéo #${currentHabitokIdx + 1}`;
+
+            const likeBtn = document.getElementById('habitokLikeBtn');
+            likeBtn.className = vid.liked ? "w-11 h-11 rounded-full bg-pink-600 border border-pink-500 flex items-center justify-center text-white text-lg shadow-lg shadow-pink-600/40 transition-all cursor-pointer" : "w-11 h-11 rounded-full bg-slate-900/80 border border-slate-700 flex items-center justify-center text-slate-300 text-lg shadow-lg hover:text-pink-400 transition-all cursor-pointer";
+
+            const subBtn = document.getElementById('habitokSubBtn');
+            const subIcon = document.getElementById('habitokSubIcon');
+            subBtn.className = vid.subscribed ? "w-11 h-11 rounded-full bg-purple-600 border border-purple-500 flex items-center justify-center text-white text-lg shadow-lg shadow-purple-600/40 transition-all cursor-pointer" : "w-11 h-11 rounded-full bg-slate-900/80 border border-pink-500/50 flex items-center justify-center text-pink-400 text-lg shadow-lg hover:bg-pink-600 hover:text-white transition-all cursor-pointer";
+            subIcon.className = vid.subscribed ? "fa-solid fa-user-check" : "fa-solid fa-user-plus";
+        }
+
+        function nextHabitokVideo() {
+            currentHabitokIdx++;
+            if (currentHabitokIdx >= habitokFeed.length - 2) {
+                for (let i = 0; i < 3; i++) {
+                    habitokFeed.push(generateHabitokVideo());
+                }
+            }
+            renderHabitokVideo();
+            addXp(2);
+        }
+
+        function addCurrentExerciseToHabits() {
+            const vid = habitokFeed[currentHabitokIdx];
+            habits.push({
+                id: Date.now(),
+                name: vid.exercise,
+                category: vid.category || "Sport & Forme",
+                icon: vid.icon || "fa-dumbbell",
+                days: [false, false, false, false, false, false, false],
+                streak: 0
+            });
+            saveHabits();
+            confetti({ particleCount: 50, spread: 60 });
+            alert(`✅ L'exercice "${vid.exercise}" a été ajouté à ton tableau de bord !`);
+            renderApp();
+        }
+
+        function toggleHabitokLike() {
+            const vid = habitokFeed[currentHabitokIdx];
+            vid.liked = !vid.liked;
+            vid.likes += vid.liked ? 1 : -1;
+            renderHabitokVideo();
+        }
+
+        function toggleCoachSubscribe() {
+            const vid = habitokFeed[currentHabitokIdx];
+            vid.subscribed = !vid.subscribed;
+            alert(vid.subscribed ? `🎉 Abonné à ${vid.coach} !` : `Désabonné de ${vid.coach}.`);
+            renderHabitokVideo();
+            checkBadges();
+        }
+
+        function shareHabitokVideo() {
+            const vid = habitokFeed[currentHabitokIdx];
+            alert(`🔗 Lien du conseil robotique "${vid.exercise}" copié dans le presse-papier !`);
+        }
+
+        // --- MODULE IA CHAT : SPORTIFGPT PERFECTIONNÉ (MODE LIBRE & ADAPTATIF) ---
+        function appendChatMessage(sender, text) {
+            const container = document.getElementById('chat-messages');
+            const isUser = sender === 'user';
+            
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flex items-start space-x-3 ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`;
+            
+            let formattedText = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
+            
+            msgDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-full ${isUser ? 'bg-purple-600 text-white' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'} flex items-center justify-center text-xs shrink-0 font-bold shadow-md">
+                    ${isUser ? '👤' : '🤖'}
+                </div>
+                <div class="${isUser ? 'bg-emerald-500 text-slate-950 font-medium rounded-tr-none' : 'bg-slate-800/90 border border-slate-700/60 text-slate-200 rounded-tl-none'} p-3.5 rounded-2xl max-w-[85%] leading-relaxed text-sm">
+                    ${formattedText}
+                </div>
+            `;
+            
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            appendChatMessage('user', text);
+            input.value = '';
+
+            setTimeout(() => {
+                let response = generateAdvancedSportifGptResponse(text);
+                appendChatMessage('bot', response);
+                addXp(5);
+            }, 800);
+        }
+
+        function sendQuickPrompt(promptText) {
+            document.getElementById('chat-input').value = promptText;
+            sendMessage();
+        }
+
+        function generateAdvancedSportifGptResponse(query) {
+            const q = query.toLowerCase();
+
+            if (q.includes('protéine') || q.includes('proteine') || q.includes('macro') || q.includes('manger') || q.includes('glucide') || q.includes('lipide')) {
+                return `🥩 **Stratégie Nutritionnelle & Macronutriments :**\n\nPour répondre précisément à ta demande concernant "${query}", voici les grands principes validés en sciences du sport :\n• **Protéines :** Vise entre **1.8g et 2.2g par kilo de poids de corps** pour optimiser l'anabolisme et la récupération.\n• **Répartition :** Privilégie 3 à 5 prises régulières par jour pour maximiser la synthèse protéique.\n\nSouhaites-tu que l'on calcule tes besoins caloriques et tes macros exacts en fonction de ton poids et de ton objectif ?`;
+            }
+            
+            if (q.includes('créatine') || q.includes('suplément') || q.includes('complement') || q.includes('whey') || q.includes('bcaa')) {
+                return `⚡ **Analyse des Suppléments :**\n\nConcernant l'utilisation de compléments comme tu le mentionnes :\n• **Créatine Monohydrate :** Le supplément le plus efficace. Un dosage de **3g à 5g par jour** en continu suffit à saturer les stocks intramusculaires de phosphocréatine.\n• **Rôle :** Elle améliore l'énergie sur les efforts courts et intenses et favorise le volume cellulaire.\n\nAs-tu des questions sur le timing de prise ou d'autres types de compléments ?`;
+            }
+            
+            if (q.includes('squat') || q.includes('exercice') || q.includes('technique') || q.includes('dos') || q.includes('développé') || q.includes('muscu')) {
+                return `🏋️‍♂️ **Analyse Biomécanique & Exécution :**\n\nPour tout mouvement de musculation lié à "${query}", la sécurité et le recrutement articulaire dépendent de trois facteurs :\n1. **Stabilité :** Ancrage solide au sol et contrôle de la trajectoire.\n2. **Gainage :** Pression intra-abdominale verrouillée pour protéger les lombaires.\n3. **Amplitude :** Recherche d'un étirement musculaire contrôlé sans compromettre les articulations.\n\nQuel exercice précis souhaites-tu détailler pas à pas ?`;
+            }
+
+            if (q.includes('programme') || q.includes('split') || q.includes('full body') || q.includes('frequence') || q.includes('séance')) {
+                return `📅 **Planification de l'Entraînement :**\n\nPour structurer ta routine de manière optimale :\n• Le volume hebdomadaire par groupe musculaire (10 à 20 séries) prime sur la structure.\n• Assure-toi d'avoir au moins 48 à 72 heures de récupération entre deux sollicitations d'un même groupe.\n\nCombien de jours par semaine peux-tu t'entraîner et quel est ton niveau actuel ?`;
+            }
+
+            if (q.includes('poids') || q.includes('seche') || q.includes('maigrir') || q.includes('graisse') || q.includes('perdre') || q.includes('calorie')) {
+                return `🔥 **Stratégie Métabolique & Perte de Poids :**\n\nLa gestion du poids repose sur la balance énergétique :\n• Un **déficit calorique modéré** (-300 à -500 kcal/jour) garantit une perte de graisse durable tout en préservant la masse maigre.\n• L'association d'un entraînement en résistance et d'une hydratation adéquate (> 2L d'eau) est indispensable.\n\nQuel est ton poids cible ou ton rythme de progression actuel ?`;
+            }
+
+            if (q.includes('bonjour') || q.includes('salut') || q.includes('hey') || q.includes('coucou')) {
+                return `👋 Salut champion ! Je suis **SportifGPT**, ton coach virtuel. Je peux répondre à absolument toutes tes questions de manière personnalisée sur l'entraînement, la nutrition, la physiologie ou la gestion de tes habitudes. Que souhaite-t-on aborder ensemble ? 🚀`;
+            }
+
+            return `🤖 **Analyse experte de ta demande :**\n\nTu m'interroges sur : *" ${query} "*.\n\nEn matière de préparation physique et de biohacking corporel, il n'y a pas de réponse unique : tout dépend de ton profil, de ton historique d'entraînement et de tes contraintes personnelles. Pour que je te formule une réponse sur-mesure et détaillée, peux-tu me préciser ton objectif principal (prise de muscle, perte de gras, performance) ? 💪✨`;
+        }
+
+        // --- BADGES ---
+        const badgesConfig = [
+            { id: 'first_step', title: "Premier Pas", desc: "Valide ta toute première habitude", icon: "fa-shoe-prints", check: () => habits.some(h => h.days.some(d => d)) },
+            { id: 'streak_3', title: "Enflammé", desc: "Atteins une série de 3 jours", icon: "fa-fire", check: () => habits.some(h => h.streak >= 3) },
+            { id: 'habit_5', title: "Architecte", desc: "Crée au moins 5 habitudes", icon: "fa-hammer", check: () => habits.length >= 5 },
+            { id: 'xp_200', title: "Vétéran XP", desc: "Accumule plus de 200 XP", icon: "fa-bolt", check: () => userXp >= 200 },
+            { id: 'habitok_fan', title: "Addict Robot-Fit", desc: "Abonne-toi à un coach robot IA", icon: "fa-video", check: () => habitokFeed.some(v => v.subscribed) },
+            { id: 'pro_user', title: "Membre VIP", desc: "Deviens membre HabitFlow Pro", icon: "fa-crown", check: () => isPro }
+        ];
+
+        let unlockedBadges = JSON.parse(localStorage.getItem('habitflow_badges')) || [];
+
+        function checkBadges() {
+            badgesConfig.forEach(badge => {
+                if (!unlockedBadges.includes(badge.id) && badge.check()) {
+                    unlockedBadges.push(badge.id);
+                    localStorage.setItem('habitflow_badges', JSON.stringify(unlockedBadges));
+                    triggerBadgeUnlockAnimation(badge);
+                }
+            });
+        }
+
+        function triggerBadgeUnlockAnimation(badge) {
+            confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+            document.getElementById('modalBadgeIcon').className = `fa-solid ${badge.icon}`;
+            document.getElementById('modalBadgeTitle').textContent = badge.title;
+            document.getElementById('modalBadgeDesc').textContent = badge.desc;
+            document.getElementById('badgeModal').classList.remove('hidden');
+        }
+
+        function closeBadgeModal() {
+            document.getElementById('badgeModal').classList.add('hidden');
+        }
+
+        // --- AUTH & NAVIGATION ---
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const mainApp = document.getElementById('mainApp');
+        const pseudoForm = document.getElementById('pseudoForm');
+        const pseudoInput = document.getElementById('pseudoInput');
+
+        if (currentUser && currentUser.trim() !== "") {
+            welcomeScreen.style.display = 'none';
+            mainApp.classList.remove('hidden');
+            updateUserDisplay();
+            renderApp();
+            renderHabitokVideo();
+            updateWalletDisplay();
+        }
+
+        pseudoForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const val = pseudoInput.value.trim();
+            if (val !== "") {
+                currentUser = val;
+                localStorage.setItem('habitflow_user', currentUser);
+                welcomeScreen.style.opacity = '0';
+                setTimeout(() => {
+                    welcomeScreen.style.display = 'none';
+                    mainApp.classList.remove('hidden');
+                    updateUserDisplay();
+                    renderApp();
+                    renderHabitokVideo();
+                    updateWalletDisplay();
+                }, 300);
+            }
+        });
+
+        function updateUserDisplay() {
+            document.getElementById('userDisplayName').textContent = currentUser;
+            document.getElementById('userAvatarText').textContent = userAvatar;
+            document.getElementById('profileBigAvatar').textContent = userAvatar;
+            document.getElementById('profilePseudoInput').value = currentUser;
+            document.getElementById('profileAvatarSelect').value = userAvatar;
+            document.getElementById('profileBioInput').value = userBio;
+        }
+
+        function switchTab(tab) {
+            ['habits', 'habitok', 'sportifgpt', 'shop', 'profile'].forEach(t => {
+                const target = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                const btn = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
+                if (target) target.classList.add('hidden');
+                if (btn) btn.className = "px-3 py-2 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white cursor-pointer";
+            });
+
+            const activeTarget = document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+            const activeBtn = document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}Btn`);
+            
+            if (activeTarget) activeTarget.classList.remove('hidden');
+            if (activeBtn) activeBtn.className = "px-3 py-2 rounded-lg text-xs font-medium transition-all bg-purple-600 text-white shadow-sm font-bold cursor-pointer";
+        }
+
+        document.getElementById('profileForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            currentUser = document.getElementById('profilePseudoInput').value.trim();
+            userAvatar = document.getElementById('profileAvatarSelect').value;
+            userBio = document.getElementById('profileBioInput').value.trim();
+
+            localStorage.setItem('habitflow_user', currentUser);
+            localStorage.setItem('habitflow_avatar', userAvatar);
+            localStorage.setItem('habitflow_bio', userBio);
+
+            updateUserDisplay();
+            renderApp();
+            alert("Profil mis à jour ! ✨");
+        });
+
+        function addXp(amount) {
+            userXp += amount;
+            localStorage.setItem('habitflow_xp', userXp);
+            petData.xp += Math.floor(amount / 2);
+            checkPetLevelUp();
+            checkBadges();
+            updateXpDisplay();
+        }
+
+        function checkPetLevelUp() {
+            if (petData.xp >= petData.maxLevelXp) {
+                petData.level += 1;
+                petData.xp = 0;
+                petData.maxLevelXp += 50;
+                confetti({ particleCount: 80, spread: 60 });
+                alert(`🐲 Pyxl est passé au niveau ${petData.level} !`);
+            }
+            localStorage.setItem('habitflow_pet', JSON.stringify(petData));
+        }
+
+        function updateXpDisplay() {
+            let level = Math.floor(userXp / 100) + 1;
+            let currentLevelXp = userXp % 100;
+            
+            document.getElementById('currentXpText').textContent = currentLevelXp;
+            document.getElementById('xpProgressBar').style.width = `${currentLevelXp}%`;
+            document.getElementById('userLevelBadge').textContent = `Niveau ${level}`;
+
+            document.getElementById('petLevel').textContent = `Lv.${petData.level}`;
+            let petPercent = (petData.xp / petData.maxLevelXp) * 100;
+            document.getElementById('petXpBar').style.width = `${petPercent}%`;
+        }
+
+        document.getElementById('addHabitForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('habitNameInput');
+            const categoryInput = document.getElementById('habitCategoryInput');
+            const name = nameInput.value.trim();
+
+            if (name !== "") {
+                habits.push({
+                    id: Date.now(),
+                    name: name,
+                    category: categoryInput.value,
+                    icon: selectedIcon,
+                    days: [false, false, false, false, false, false, false],
+                    streak: 0
+                });
+                saveHabits();
+                nameInput.value = "";
+                renderApp();
+                alert("Habitude ajoutée ! 🚀");
+            }
+        });
+
+        function saveHabits() {
+            localStorage.setItem('habitflow_habits_v6', JSON.stringify(habits));
+        }
+
+        function toggleDay(habitId, dayIndex) {
+            const habit = habits.find(h => h.id === habitId);
+            if (habit) {
+                habit.days[dayIndex] = !habit.days[dayIndex];
+                if (habit.days[dayIndex]) {
+                    habit.streak += 1;
+                    addXp(15);
+                    userCrystals += 5;
+                    updateWalletDisplay();
+                    confetti({ particleCount: 40, spread: 50, origin: { y: 0.7 } });
+                } else {
+                    habit.streak = Math.max(0, habit.streak - 1);
+                }
+                saveHabits();
+                renderApp();
+            }
+        }
+
+        function deleteHabit(habitId) {
+            habits = habits.filter(h => h.id !== habitId);
+            saveHabits();
+            renderApp();
+        }
+
+        function renderApp() {
+            updateXpDisplay();
+            updateWalletDisplay();
+
+            const tbody = document.getElementById('habitsTableBody');
+            tbody.innerHTML = '';
+            let totalActions = habits.length * 7;
+            let completedActions = 0;
+            let maxStreak = 0;
+
+            habits.forEach(habit => {
+                habit.days.forEach(d => { if (d) completedActions++; });
+                if (habit.streak > maxStreak) maxStreak = habit.streak;
+
+                let row = document.createElement('div');
+                row.className = "grid grid-cols-12 items-center py-4 text-sm";
+                
+                let daysHtml = '';
+                habit.days.forEach((isChecked, dIdx) => {
+                    daysHtml += `
+                        <div class="col-span-1 flex justify-center">
+                            <button onclick="toggleDay(${habit.id}, ${dIdx})" class="w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer ${isChecked ? 'bg-purple-600 text-white shadow-md shadow-purple-500/40 scale-105' : 'bg-slate-900 border border-slate-800 text-slate-600'}">
+                                <i class="fa-solid ${isChecked ? 'fa-check text-xs' : 'fa-circle text-[6px]' }"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+
+                row.innerHTML = `
+                    <div class="col-span-4 flex items-center space-x-3 pr-2">
+                        <div class="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 text-sm shrink-0">
+                            <i class="fa-solid ${habit.icon || 'fa-droplet'}"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="font-bold text-white text-xs truncate">${habit.name}</h4>
+                            <span class="text-[10px] text-slate-400 truncate block">${habit.category}</span>
+                        </div>
+                    </div>
+                    ${daysHtml}
+                    <div class="col-span-1 text-center font-bold text-amber-400 text-xs">🔥 ${habit.streak}j</div>
+                    <div class="col-span-1 text-right">
+                        <button onclick="deleteHabit(${habit.id})" class="text-slate-500 hover:text-red-400 p-2 cursor-pointer"><i class="fa-solid fa-trash text-xs"></i></button>
+                    </div>
+                `;
+                tbody.appendChild(row);
+            });
+
+            let successRate = totalActions > 0 ? Math.round((completedActions / totalActions) * 100) : 0;
+            document.getElementById('globalSuccessRate').textContent = `${successRate}%`;
+            document.getElementById('globalSuccessCount').textContent = `${completedActions} / ${totalActions} actions`;
+            document.getElementById('maxStreakDisplay').textContent = `${maxStreak} jours`;
+
+            checkBadges();
+            const badgesGrid = document.getElementById('badgesGrid');
+            badgesGrid.innerHTML = '';
+            badgesConfig.forEach(badge => {
+                let isUnlocked = unlockedBadges.includes(badge.id);
+                badgesGrid.innerHTML += `
+                    <div class="glass-card p-4 rounded-2xl border ${isUnlocked ? 'border-amber-500/40 bg-amber-950/10' : 'border-slate-800 opacity-60'} flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl ${isUnlocked ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-800 text-slate-500'} flex items-center justify-center text-lg shrink-0">
+                            <i class="fa-solid ${badge.icon}"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="text-xs font-bold text-white truncate">${badge.title}</h4>
+                            <p class="text-[10px] text-slate-400 truncate">${badge.desc}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('badgesCountDisplay').textContent = `${unlockedBadges.length} / ${badgesConfig.length}`;
+        }
+    </script>
+</body>
+</html>
